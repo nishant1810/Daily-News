@@ -1,5 +1,12 @@
-const API_KEY = "YOUR_API_KEY";
+const API_KEY = "8151a635e9ac4e13b137872023469356";
 const url = "https://newsapi.org/v2/everything?q=";
+const searchInput = document.getElementById("search-text");
+const searchButton = document.getElementById("search-button");
+const suggestionsBox = document.createElement("ul");
+
+suggestionsBox.setAttribute("id", "suggestions");
+suggestionsBox.classList.add("absolute", "bg-white", "border", "border-gray-300", "rounded-md", "w-full", "mt-1", "z-50", "hidden");
+searchInput.parentNode.appendChild(suggestionsBox);
 
 fetchNews("India");
 
@@ -12,12 +19,13 @@ async function fetchNews(query) {
     try {
         const res = await fetch(`${url}${query}&apiKey=${API_KEY}`);
         if (!res.ok) {
-            throw new Error('Failed to fetch data from the server.');
+            throw new Error("Failed to fetch data from the server.");
         }
         const data = await res.json();
         bindData(data.articles);
+        suggestionsBox.classList.add("hidden");
     } catch (error) {
-        console.error('Error fetching news:', error);
+        console.error("Error fetching news:", error);
     }
 }
 
@@ -26,7 +34,7 @@ function bindData(articles) {
     const newsCardTemplate = document.getElementById("template-news-card");
 
     if (!articles || articles.length === 0) {
-        console.error('No articles found.');
+        console.error("No articles found.");
         return;
     }
 
@@ -47,6 +55,7 @@ function fillDataInCard(cardClone, article) {
     const newsTitle = cardClone.querySelector("#news-title");
     const newsSource = cardClone.querySelector("#news-source");
     const newsDesc = cardClone.querySelector("#news-desc");
+    const newsLink = cardClone.querySelector("#news-link");
 
     newsImg.src = article.urlToImage;
     newsTitle.innerHTML = article.title;
@@ -58,24 +67,70 @@ function fillDataInCard(cardClone, article) {
 
     newsSource.innerHTML = `${article.source.name} · ${date}`;
 
-    cardClone.firstElementChild.addEventListener("click", () => {
-        window.open(article.url, "_blank");
-    });
+    newsLink.href = article.url;
+    newsLink.setAttribute("target", "_blank");
+    newsLink.setAttribute("rel", "noopener noreferrer");
 }
 
-function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-    localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
-}
+searchButton.addEventListener("click", () => {
+    const query = searchInput.value.trim();
+    if (!query) return;
+    fetchNews(query);
+    suggestionsBox.classList.add("hidden"); 
+});
 
-window.onload = () => {
-    const darkMode = JSON.parse(localStorage.getItem("darkMode"));
-    if (darkMode) {
-        document.body.classList.add("dark-mode");
+async function fetchSuggestions(query) {
+    try {
+        const res = await fetch(`${url}${query}&apiKey=${API_KEY}`);
+        if (!res.ok) {
+            throw new Error("Failed to fetch suggestions.");
+        }
+        const data = await res.json();
+        showSuggestions(data.articles);
+    } catch (error) {
+        console.error("Error fetching suggestions:", error);
     }
-};
+}
+
+function showSuggestions(articles) {
+    suggestionsBox.innerHTML = "";
+    if (!articles || articles.length === 0) {
+        suggestionsBox.classList.add("hidden");
+        return;
+    }
+
+    articles.slice(0, 5).forEach((article) => {
+        const li = document.createElement("li");
+        li.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200");
+        li.textContent = article.title;
+        li.addEventListener("click", () => {
+            searchInput.value = article.title; 
+            fetchNews(article.title);
+            suggestionsBox.classList.add("hidden"); 
+        });
+        suggestionsBox.appendChild(li);
+    });
+
+    suggestionsBox.classList.remove("hidden");
+}
+
+searchInput.addEventListener("input", () => {
+    const query = searchInput.value.trim();
+    if (!query) {
+        suggestionsBox.classList.add("hidden");
+        return;
+    }
+    fetchSuggestions(query);
+});
+
+document.addEventListener("click", (event) => {
+    if (!searchInput.contains(event.target) && !suggestionsBox.contains(event.target)) {
+        suggestionsBox.classList.add("hidden");
+    }
+});
 
 let curSelectedNav = null;
+
 function onNavItemClick(id) {
     fetchNews(id);
     const navItem = document.getElementById(id);
@@ -85,16 +140,3 @@ function onNavItemClick(id) {
     curSelectedNav = navItem;
     curSelectedNav.classList.add("active");
 }
-
-const searchButton = document.getElementById("search-button");
-const searchText = document.getElementById("search-text");
-
-searchButton.addEventListener("click", () => {
-    const query = searchText.value;
-    if (!query) return;
-    fetchNews(query);
-    if (curSelectedNav) {
-        curSelectedNav.classList.remove("active");
-        curSelectedNav = null;
-    }
-});
