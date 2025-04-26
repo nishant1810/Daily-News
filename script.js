@@ -1,4 +1,4 @@
-const API_KEY = "YOUR_API_KEY";
+const API_KEY = "8151a635e9ac4e13b137872023469356";
 const url = "https://newsapi.org/v2/everything?q=";
 const searchInput = document.getElementById("search-text");
 const searchButton = document.getElementById("search-button");
@@ -10,11 +10,6 @@ searchInput.parentNode.appendChild(suggestionsBox);
 
 fetchNews("India");
 
-function reload() {
-    fetchNews("India");
-    window.location.reload();
-}
-
 async function fetchNews(query) {
     try {
         const res = await fetch(`${url}${query}&apiKey=${API_KEY}`);
@@ -22,6 +17,7 @@ async function fetchNews(query) {
             throw new Error("Failed to fetch data from the server.");
         }
         const data = await res.json();
+        console.log(data); // Log the API response for debugging
         bindData(data.articles);
         suggestionsBox.classList.add("hidden");
     } catch (error) {
@@ -34,7 +30,7 @@ function bindData(articles) {
     const newsCardTemplate = document.getElementById("template-news-card");
 
     if (!articles || articles.length === 0) {
-        console.error("No articles found.");
+        cardsContainer.innerHTML = "<p>No articles found.</p>"; // Display message if no articles
         return;
     }
 
@@ -76,7 +72,7 @@ searchButton.addEventListener("click", () => {
     const query = searchInput.value.trim();
     if (!query) return;
     fetchNews(query);
-    suggestionsBox.classList.add("hidden"); 
+    suggestionsBox.classList.add("hidden");
 });
 
 async function fetchSuggestions(query) {
@@ -104,9 +100,9 @@ function showSuggestions(articles) {
         li.classList.add("p-2", "cursor-pointer", "hover:bg-gray-200");
         li.textContent = article.title;
         li.addEventListener("click", () => {
-            searchInput.value = article.title; 
+            searchInput.value = article.title;
             fetchNews(article.title);
-            suggestionsBox.classList.add("hidden"); 
+            suggestionsBox.classList.add("hidden");
         });
         suggestionsBox.appendChild(li);
     });
